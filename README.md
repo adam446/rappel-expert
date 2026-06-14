@@ -24,6 +24,11 @@ L'exemple livre est le paiement mensuel d'une facture d'electricite de 120 $, du
 - Listes separees des rappels urgents et en retard.
 - Reapplication manuelle ou automatique des regles expertes.
 - Persistance PostgreSQL dans un volume Docker.
+- Connexion par nom d'utilisateur ou email avec routes API protegees.
+- Inscription utilisateur avec nom complet, email, nom d'utilisateur et mot de passe.
+- Isolation des taches par utilisateur; l'administrateur peut superviser toutes les donnees.
+- Reinitialisation de mot de passe par lien temporaire envoye par courriel SMTP.
+- Tableau de bord administrateur avec statistiques globales et liste des utilisateurs.
 
 ## 3. Architecture de l'application
 
@@ -53,7 +58,7 @@ Le frontend affiche les valeurs `expert_state` et `color` retournees par l'API. 
 Le schema se trouve dans `database/schema.sql` et les donnees de demonstration dans `database/seed.sql`.
 
 ```text
-recurring_tasks 1 ---- N reminders
+users 1 ---- N recurring_tasks 1 ---- N reminders
 ```
 
 `recurring_tasks` contient la definition de la serie. `reminders` contient chaque occurrence, son statut utilisateur, son etat expert et sa couleur. La contrainte unique `(recurring_task_id, due_date)` empeche les doublons dans une meme serie.
@@ -77,6 +82,12 @@ L'ordre garantit qu'un rappel complete, annule ou archive n'est jamais reclasse 
 
 | Methode | Route | Action |
 |---|---|---|
+| POST | `/auth/login` | Ouvrir une session utilisateur ou administrateur |
+| POST | `/auth/signup` | Creer un compte utilisateur et ouvrir une session |
+| POST | `/auth/forgot-password` | Envoyer un lien de reinitialisation par courriel |
+| POST | `/auth/reset-password` | Definir un nouveau mot de passe avec le jeton recu |
+| GET | `/admin/dashboard` | Afficher les statistiques et utilisateurs, admin uniquement |
+| GET | `/auth/me` | Lire l'utilisateur connecte |
 | GET | `/recurring-tasks` | Lister les series |
 | GET | `/recurring-tasks/{id}` | Lire une serie |
 | POST | `/recurring-tasks` | Creer une serie et ses rappels |
@@ -103,6 +114,10 @@ docker compose up --build
 ```
 
 Au premier demarrage, PostgreSQL execute le schema et insere l'exemple de facture. Les executions suivantes reutilisent le volume `postgres_data`.
+
+Le compte administrateur initial est configure dans `.env` avec `ADMIN_FULL_NAME`, `ADMIN_USERNAME`, `ADMIN_EMAIL` et `ADMIN_PASSWORD`. Les valeurs de developpement par defaut sont `Administrateur`, `admin`, `admin@example.com` et `admin123`. Modifiez egalement `SECRET_KEY` avant tout deploiement.
+
+Les courriels de reinitialisation utilisent `SMTP_FROM_EMAIL` comme expediteur. Configurez aussi `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_USE_TLS` et `FRONTEND_URL`. Pour Gmail, utilisez un mot de passe d'application plutot que le mot de passe normal du compte.
 
 ## 9. Execution du projet
 
@@ -134,7 +149,7 @@ Le dossier `screenshots/` est reserve aux captures de la page calendrier, du for
 
 ## 12. Ameliorations futures
 
-- Authentification et separation des donnees par utilisateur.
+- Separation des donnees par utilisateur et gestion de plusieurs comptes.
 - Notifications par courriel ou navigateur.
 - Filtres, recherche, export CSV et statistiques.
 - Migrations de base de donnees avec Alembic.

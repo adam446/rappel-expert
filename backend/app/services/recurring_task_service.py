@@ -7,21 +7,29 @@ from app.schemas.recurring_task import RecurringTaskCreate, RecurringTaskUpdate
 from app.services.reminder_generator import generate_reminders
 
 
-def get_recurring_tasks(db: Session) -> list[RecurringTask]:
-    return db.query(RecurringTask).order_by(RecurringTask.created_at.desc()).all()
+def get_recurring_tasks(db: Session, user_id: int | None) -> list[RecurringTask]:
+    query = db.query(RecurringTask)
+    if user_id is not None:
+        query = query.filter(RecurringTask.user_id == user_id)
+    return query.order_by(RecurringTask.created_at.desc()).all()
 
 
-def get_recurring_task(db: Session, task_id: int) -> RecurringTask:
-    task = db.get(RecurringTask, task_id)
+def get_recurring_task(
+    db: Session, task_id: int, user_id: int | None
+) -> RecurringTask:
+    query = db.query(RecurringTask).filter(RecurringTask.id == task_id)
+    if user_id is not None:
+        query = query.filter(RecurringTask.user_id == user_id)
+    task = query.first()
     if task is None:
         raise HTTPException(status_code=404, detail="Tache recurrente introuvable.")
     return task
 
 
 def create_recurring_task(
-    db: Session, data: RecurringTaskCreate
+    db: Session, data: RecurringTaskCreate, user_id: int
 ) -> RecurringTask:
-    task = RecurringTask(**data.model_dump())
+    task = RecurringTask(user_id=user_id, **data.model_dump())
     db.add(task)
     db.flush()
     if task.status == "active":
@@ -32,9 +40,9 @@ def create_recurring_task(
 
 
 def update_recurring_task(
-    db: Session, task_id: int, data: RecurringTaskUpdate
+    db: Session, task_id: int, data: RecurringTaskUpdate, user_id: int | None
 ) -> RecurringTask:
-    task = get_recurring_task(db, task_id)
+    task = get_recurring_task(db, task_id, user_id)
     values = data.model_dump(exclude_unset=True)
 
     for field, value in values.items():
@@ -82,8 +90,10 @@ def update_recurring_task(
     return task
 
 
-def archive_recurring_task(db: Session, task_id: int) -> RecurringTask:
-    task = get_recurring_task(db, task_id)
+def archive_recurring_task(
+    db: Session, task_id: int, user_id: int | None
+) -> RecurringTask:
+    task = get_recurring_task(db, task_id, user_id)
     task.status = "archived"
     reminders = db.query(Reminder).filter(Reminder.recurring_task_id == task.id).all()
     for reminder in reminders:

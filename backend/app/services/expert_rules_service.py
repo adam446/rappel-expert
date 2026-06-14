@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from sqlalchemy.orm import Session
 
 from app.models.reminder import Reminder
+from app.models.recurring_task import RecurringTask
 
 
 def apply_rules_to_reminder(reminder: Reminder, today: date | None = None) -> Reminder:
@@ -31,9 +32,12 @@ def apply_rules_to_reminder(reminder: Reminder, today: date | None = None) -> Re
 
 
 def apply_rules_to_all_reminders(
-    db: Session, today: date | None = None
+    db: Session, today: date | None = None, user_id: int | None = None
 ) -> list[Reminder]:
-    reminders = db.query(Reminder).all()
+    query = db.query(Reminder).join(RecurringTask)
+    if user_id is not None:
+        query = query.filter(RecurringTask.user_id == user_id)
+    reminders = query.all()
     for reminder in reminders:
         apply_rules_to_reminder(reminder, today)
     db.commit()

@@ -6,7 +6,6 @@ const emptyForm = {
   amount: "",
   start_date: "",
   end_date: "",
-  day_of_month: "15",
   frequency: "monthly",
   status: "active",
 };
@@ -35,10 +34,11 @@ export default function RecurringTaskForm({ editingTask, onCancel, onSubmit }) {
     event.preventDefault();
     setSaving(true);
     try {
+      const startDay = Number(form.start_date.slice(-2));
       await onSubmit({
         ...form,
         amount: form.amount === "" ? null : Number(form.amount),
-        day_of_month: Number(form.day_of_month),
+        day_of_month: startDay,
       });
       if (!editingTask) setForm(emptyForm);
     } finally {
@@ -65,14 +65,9 @@ export default function RecurringTaskForm({ editingTask, onCancel, onSubmit }) {
         <textarea name="description" value={form.description || ""} onChange={update} rows="3" />
       </label>
 
-      <label className="field">
+      <label className="field field-wide">
         <span>Montant ($)</span>
         <input name="amount" type="number" min="0" step="0.01" value={form.amount} onChange={update} />
-      </label>
-
-      <label className="field">
-        <span>Jour du mois</span>
-        <input name="day_of_month" type="number" min="1" max="31" value={form.day_of_month} onChange={update} required />
       </label>
 
       <label className="field">

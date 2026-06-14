@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Date, DateTime, Integer, Numeric, String, Text
+from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -9,6 +9,12 @@ class RecurringTask(Base):
     __tablename__ = "recurring_tasks"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     amount = Column(Numeric(10, 2), nullable=True)
@@ -30,3 +36,4 @@ class RecurringTask(Base):
         back_populates="recurring_task",
         cascade="all, delete-orphan",
     )
+    user = relationship("User", back_populates="recurring_tasks")
